@@ -1,5 +1,9 @@
+use std::collections::VecDeque;
+
 use crate::types::Kline;
 
-pub fn sma(days: i64, klines: Vec<Kline>) {
-    println!("sma {}", days);
+pub fn sma(days: i64, klines: VecDeque<Kline>) {
+    klines.iter().for_each(|kline| {
+        println!("{:?}", kline);
+    });
 }
