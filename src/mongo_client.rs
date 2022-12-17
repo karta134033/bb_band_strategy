@@ -1,9 +1,8 @@
 use chrono::Utc;
 use futures::stream::TryStreamExt;
-use std::collections::VecDeque;
 
 use mongodb::{
-    bson::{doc, Document},
+    bson::{doc, Bson, Document},
     options::{ClientOptions, FindOptions},
     Client,
 };
@@ -26,10 +25,10 @@ impl MongoClient {
         collection_name: &str,
         from_ts: i64,
         to_ts: Option<i64>,
-    ) -> VecDeque<Kline> {
-        let mut klines = VecDeque::new();
+    ) -> Vec<Kline> {
+        let mut klines = Vec::new();
         let database = self.client.database(database_name);
-        let collection = database.collection::<Kline>(collection_name);
+        let collection = database.collection::<Document>(collection_name);
         let to_ts = if let Some(ts) = to_ts {
             ts
         } else {
@@ -41,9 +40,21 @@ impl MongoClient {
             .build();
         let mut cursor = collection.find(filter, find_options).await.unwrap();
         // Iterate over the results of the cursor.
-        while let Some(kline) = cursor.try_next().await.unwrap() {
-            klines.push_back(kline);
+        while let Some(doc) = cursor.try_next().await.unwrap() {
+            let kline = Kline {
+                open_time: doc.get("open_time").unwrap().as_i64().unwrap(),
+                close_time: doc.get("close_time").unwrap().as_i64().unwrap(),
+                open: parse_f64(doc.get("open")),
+                high: parse_f64(doc.get("high")),
+                low: parse_f64(doc.get("low")),
+                close: parse_f64(doc.get("close")),
+            };
+            klines.push(kline);
         }
         klines
     }
+}
+
+pub fn parse_f64(bson: Option<&Bson>) -> f64 {
+    bson.unwrap().as_str().unwrap().parse::<f64>().unwrap()
 }
