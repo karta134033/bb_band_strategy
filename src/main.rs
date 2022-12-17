@@ -20,10 +20,10 @@ fn main() {
     let to = (2022, 11, 30); // y, m , d
     let initial_captial: f64 = 10000.;
     let take_profit_percentage = 0.006;
-    let stop_loss_percentage = 0.005;
+    let stop_loss_percentage = 0.004;
     let fee_rate = 0.04 / 100.;
     let leverage = 2.;
-    let strategy_type = StrategyType::Compound;
+    let strategy_type = StrategyType::Single;
     let entry_protion = 0.3;
 
     // Variables
@@ -58,7 +58,7 @@ fn main() {
             let prev_bb_band = bb_bands[index - 1].as_ref().unwrap();
             if entry_side == TradeSide::None {
                 let entry_size = if strategy_type == StrategyType::Single {
-                    initial_captial.max(usd_balance) * entry_protion / curr_price
+                    initial_captial.min(usd_balance) * entry_protion / curr_price
                 } else {
                     usd_balance * entry_protion / curr_price
                 };
