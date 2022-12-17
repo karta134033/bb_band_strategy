@@ -24,3 +24,8 @@ pub enum StrategyType {
     Single,
     Compound,
 }
+
+pub struct OrderSpec {
+    pub position: f64,
+    pub side: i64,
+}
