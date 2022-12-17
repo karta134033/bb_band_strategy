@@ -9,28 +9,28 @@ use bb_band::{
     strategy::prev_bb_band_entry,
     types::StrategyType,
     utils::{self, calculate_fee, datetime_to_ts_ms},
-    BTCUSDT_15M, KLINE_DB, LOCAL_MONGO_CONNECTION_STRING,
+    TradeSide, BTCUSDT_15M, KLINE_DB, LOCAL_MONGO_CONNECTION_STRING,
 };
 
 fn main() {
     SimpleLogger::new().init().unwrap();
 
     // Config
-    let from = (2020, 11, 30); // y, m , d
+    let from = (2019, 11, 30); // y, m , d
     let to = (2022, 11, 30); // y, m , d
     let initial_captial = 10000.;
     let take_profit_percentage = 0.006;
     let stop_loss_percentage = 0.0058;
     let fee_rate = 0.04 / 100.;
-    let leverage = 2.;
-    let strategy_type = StrategyType::Single;
-    let entry_protion = 0.02;
+    let leverage = 4.;
+    let strategy_type = StrategyType::Compound;
+    let entry_protion = 0.1;
 
     // Variables
     let mut usd_balance = initial_captial;
     let mut position = 0.;
     let mut entry_price = 0.;
-    let mut entry_side = 0.;
+    let mut entry_side = TradeSide::None;
     let mut take_profit_price = 0.;
     let mut stop_loss_price = 0.;
     let mut win = 0;
@@ -56,7 +56,7 @@ fn main() {
             let curr_price = (curr_kline.high + curr_kline.low) / 2.;
             let prev_kline = &klines[index - 1];
             let prev_bb_band = bb_bands[index - 1].as_ref().unwrap();
-            if position == 0. {
+            if entry_side == TradeSide::None {
                 let entry_size = if strategy_type == StrategyType::Single {
                     initial_captial * entry_protion / curr_price
                 } else {
@@ -66,23 +66,27 @@ fn main() {
                 if let Some(order) = prev_bb_band_entry(prev_kline, prev_bb_band, entry_size) {
                     position = order.position;
                     entry_price = curr_price;
-                    entry_side = order.side as f64;
+                    entry_side = order.side;
                     let fee = calculate_fee(fee_rate, entry_price, position, leverage);
-                    take_profit_price = entry_price * (1. + take_profit_percentage * entry_side);
-                    stop_loss_price = entry_price * (1. - stop_loss_percentage * entry_side);
+                    take_profit_price =
+                        entry_price * (1. + take_profit_percentage * entry_side.value());
+                    stop_loss_price =
+                        entry_price * (1. - stop_loss_percentage * entry_side.value());
                     total_fee += fee;
                     usd_balance -= fee;
                 }
-            } else if position * entry_side > 0. || position * entry_side < 0. {
+            } else if position * entry_side.value() > 0. || position * entry_side.value() < 0. {
                 let mid_price = (curr_kline.high + curr_kline.low) / 2.;
                 if mid_price >= take_profit_price || mid_price <= stop_loss_price {
+                    // Calculate profit
                     let exit_price = if curr_price >= take_profit_price {
                         // Assume we will keep tracking the price, not just tracking 15m kline
                         take_profit_price
                     } else {
                         stop_loss_price
                     };
-                    let profit = (exit_price - entry_price) * position * entry_side * leverage;
+                    let profit =
+                        (exit_price - entry_price) * position * entry_side.value() * leverage;
                     let fee = calculate_fee(fee_rate, curr_price, position, leverage);
                     usd_balance -= fee;
                     usd_balance += profit;
@@ -93,17 +97,23 @@ fn main() {
                     } else {
                         lose += 1;
                     }
+
+                    // Init trade
                     position = 0.;
                     entry_price = 0.;
+                    entry_side = TradeSide::None;
                     take_profit_price = 0.;
                     stop_loss_price = 0.;
                 }
             }
-            let curr_date = NaiveDateTime::from_timestamp_millis(curr_kline.close_time).unwrap();
-            info!(
-                "win: {}, lose: {}, usd_balance: {}, date: {:?}",
-                win, lose, usd_balance, curr_date
-            );
+            if index % 1000 == 0 {
+                let curr_date =
+                    NaiveDateTime::from_timestamp_millis(curr_kline.close_time).unwrap();
+                info!(
+                    "win: {}, lose: {}, usd_balance: {}, date: {:?}",
+                    win, lose, usd_balance, curr_date
+                );
+            }
         }
     }
     info!(

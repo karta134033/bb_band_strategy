@@ -1,3 +1,4 @@
+use crate::TradeSide;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -27,5 +28,12 @@ pub enum StrategyType {
 
 pub struct OrderSpec {
     pub position: f64,
-    pub side: i64,
+    pub side: TradeSide,
+}
+
+pub struct TradeLog {
+    pub entry_side: i64,
+    pub entry_price: f64,
+    pub entry_size: f64,
+    pub exit_price: f64,
 }

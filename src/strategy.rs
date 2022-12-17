@@ -1,6 +1,6 @@
 use crate::{
-    trade_side,
     types::{BollingerBand, Kline, OrderSpec},
+    TradeSide,
 };
 
 pub fn prev_bb_band_entry(
@@ -11,9 +11,9 @@ pub fn prev_bb_band_entry(
     let prev_price = prev_kline.close;
     if prev_price > prev_bb_band.up || prev_price < prev_bb_band.down {
         let side = if prev_price > prev_bb_band.up {
-            trade_side::SELL
+            TradeSide::Sell
         } else {
-            trade_side::BUY
+            TradeSide::Buy
         };
         let position = entry_size;
         Some(OrderSpec { position, side })
