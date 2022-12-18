@@ -83,20 +83,6 @@ impl BacktestMetric {
             min_usd: config.initial_captial,
         }
     }
-
-    pub fn csv_record(&self) -> Vec<String> {
-        let mut record = Vec::new();
-        record.push(self.initial_captial.to_string());
-        record.push(self.usd_balance.to_string());
-        record.push(self.max_usd.to_string());
-        record.push(self.min_usd.to_string());
-        record.push(self.win.to_string());
-        record.push(self.lose.to_string());
-        record.push((self.win as f64 / (self.win + self.lose) as f64).to_string());
-        record.push(self.total_fee.to_string());
-        record.push(self.total_profit.to_string());
-        record
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
