@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Parser)]
 #[command(arg_required_else_help = true)]
 pub struct Cli {
-    #[arg(short = 'f')]
+    #[arg(short = 'c')]
     pub config_path: PathBuf,
     #[arg(short = 'm')]
     pub mode: Mode,
