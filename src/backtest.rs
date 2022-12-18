@@ -4,14 +4,14 @@ use std::{collections::VecDeque, time::Instant};
 
 use crate::{
     strategy,
-    types::{self, BbBandConfig},
+    types::{self, BacktestMetric, BbBandConfig},
     utils, TradeSide,
 };
 use strategy::prev_bb_band_entry;
 use types::{Kline, StrategyType};
 use utils::calculate_fee;
 
-pub fn backtest(config: &BbBandConfig, klines: &Vec<Kline>) {
+pub fn backtest(config: &BbBandConfig, klines: &Vec<Kline>) -> BacktestMetric {
     // Config
     let initial_captial = config.initial_captial;
     let take_profit_percentage = config.take_profit_percentage;
@@ -22,18 +22,7 @@ pub fn backtest(config: &BbBandConfig, klines: &Vec<Kline>) {
     let entry_protion = config.entry_protion;
 
     // Variables
-    let mut usd_balance = initial_captial;
-    let mut position = 0.;
-    let mut entry_price = 0.;
-    let mut entry_side = TradeSide::None;
-    let mut take_profit_price = 0.;
-    let mut stop_loss_price = 0.;
-    let mut win = 0;
-    let mut lose = 0;
-    let mut total_fee = 0.;
-    let mut total_profit = 0.;
-    let mut max_usd = usd_balance;
-
+    let mut metric = BacktestMetric::new(config);
     let timer = Instant::now();
     let mut bb_bands = VecDeque::new();
     for index in 0..klines.len() {
@@ -45,135 +34,111 @@ pub fn backtest(config: &BbBandConfig, klines: &Vec<Kline>) {
             let curr_price = (curr_kline.high + curr_kline.low) / 2.;
             let prev_kline = &klines[index - 1];
             let prev_bb_band = bb_bands[index - 1].as_ref().unwrap();
-            if entry_side == TradeSide::None {
+            if metric.entry_side == TradeSide::None {
                 let entry_size = if strategy_type == StrategyType::Single {
-                    initial_captial.min(usd_balance) * entry_protion / curr_price
+                    initial_captial.min(metric.usd_balance) * entry_protion / curr_price
                 } else {
-                    usd_balance * entry_protion / curr_price
+                    metric.usd_balance * entry_protion / curr_price
                 };
 
                 if let Some(order) = prev_bb_band_entry(prev_kline, prev_bb_band, entry_size) {
-                    position = order.position;
-                    entry_price = curr_price;
-                    entry_side = order.side;
-                    let fee = calculate_fee(fee_rate, entry_price, position, leverage);
-                    take_profit_price =
-                        entry_price * (1. + take_profit_percentage * entry_side.value());
-                    stop_loss_price =
-                        entry_price * (1. - stop_loss_percentage * entry_side.value());
-                    total_fee += fee;
-                    usd_balance -= fee;
+                    metric.position = order.position;
+                    metric.entry_price = curr_price;
+                    metric.entry_side = order.side;
+                    let fee =
+                        calculate_fee(fee_rate, metric.entry_price, metric.position, leverage);
+                    metric.take_profit_price = metric.entry_price
+                        * (1. + take_profit_percentage * metric.entry_side.value());
+                    metric.stop_loss_price = metric.entry_price
+                        * (1. - stop_loss_percentage * metric.entry_side.value());
+                    metric.total_fee += fee;
+                    metric.usd_balance -= fee;
                 }
-            } else if entry_side == TradeSide::Buy {
+            } else if metric.entry_side == TradeSide::Buy {
                 let mid_price = (curr_kline.high + curr_kline.low) / 2.;
                 // Assume we will keep tracking the price, not just tracking 15m kline
-                let exit_price = if mid_price >= take_profit_price {
-                    Some(take_profit_price)
-                } else if mid_price <= stop_loss_price {
-                    Some(stop_loss_price)
+                let exit_price = if mid_price >= metric.take_profit_price {
+                    Some(metric.take_profit_price)
+                } else if mid_price <= metric.stop_loss_price {
+                    Some(metric.stop_loss_price)
                 } else {
                     None
                 };
                 if exit_price.is_some() {
                     // Calculate profit
-                    let fee = calculate_fee(fee_rate, exit_price.unwrap(), position, leverage);
-                    let profit = (exit_price.unwrap() - entry_price) * position * leverage as f64;
-                    usd_balance -= fee;
-                    usd_balance += profit;
-                    total_fee += fee;
-                    total_profit += profit;
+                    let fee =
+                        calculate_fee(fee_rate, exit_price.unwrap(), metric.position, leverage);
+                    let profit = (exit_price.unwrap() - metric.entry_price)
+                        * metric.position
+                        * leverage as f64;
+                    metric.usd_balance -= fee;
+                    metric.usd_balance += profit;
+                    metric.total_fee += fee;
+                    metric.total_profit += profit;
                     if profit - fee >= 0. {
-                        win += 1;
+                        metric.win += 1;
                     } else {
-                        lose += 1;
+                        metric.lose += 1;
                     }
-                    max_usd = max_usd.max(usd_balance);
-                    trade_log(
-                        win,
-                        lose,
-                        usd_balance,
-                        position,
-                        entry_side,
-                        entry_price,
-                        exit_price,
-                        profit,
-                        &klines[index],
-                    );
-
-                    // Init trade
-                    position = 0.;
-                    entry_price = 0.;
-                    entry_side = TradeSide::None;
-                    take_profit_price = 0.;
-                    stop_loss_price = 0.;
+                    metric.max_usd = metric.max_usd.max(metric.usd_balance);
+                    metric.min_usd = metric.min_usd.min(metric.usd_balance);
+                    trade_log(&metric, &klines[index], exit_price.unwrap(), profit);
+                    init_trade(&mut metric);
                 }
-            } else if entry_side == TradeSide::Sell {
+            } else if metric.entry_side == TradeSide::Sell {
                 let mid_price = (curr_kline.high + curr_kline.low) / 2.;
                 // Assume we will keep tracking the price, not just tracking 15m kline
-                let exit_price = if mid_price <= take_profit_price {
-                    Some(take_profit_price)
-                } else if mid_price >= stop_loss_price {
-                    Some(stop_loss_price)
+                let exit_price = if mid_price <= metric.take_profit_price {
+                    Some(metric.take_profit_price)
+                } else if mid_price >= metric.stop_loss_price {
+                    Some(metric.stop_loss_price)
                 } else {
                     None
                 };
                 if exit_price.is_some() {
                     // Calculate profit
-                    let fee = calculate_fee(fee_rate, exit_price.unwrap(), position, leverage);
-                    let profit = (entry_price - exit_price.unwrap()) * position * leverage as f64;
-                    usd_balance -= fee;
-                    usd_balance += profit;
-                    total_fee += fee;
-                    total_profit += profit;
+                    let fee =
+                        calculate_fee(fee_rate, exit_price.unwrap(), metric.position, leverage);
+                    let profit = (metric.entry_price - exit_price.unwrap())
+                        * metric.position
+                        * leverage as f64;
+                    metric.usd_balance -= fee;
+                    metric.usd_balance += profit;
+                    metric.total_fee += fee;
+                    metric.total_profit += profit;
                     if profit - fee >= 0. {
-                        win += 1;
+                        metric.win += 1;
                     } else {
-                        lose += 1;
+                        metric.lose += 1;
                     }
-                    max_usd = max_usd.max(usd_balance);
-                    trade_log(
-                        win,
-                        lose,
-                        usd_balance,
-                        position,
-                        entry_side,
-                        entry_price,
-                        exit_price,
-                        profit,
-                        &klines[index],
-                    );
-
-                    // Init trade
-                    position = 0.;
-                    entry_price = 0.;
-                    entry_side = TradeSide::None;
-                    take_profit_price = 0.;
-                    stop_loss_price = 0.;
+                    metric.max_usd = metric.max_usd.max(metric.usd_balance);
+                    metric.min_usd = metric.min_usd.min(metric.usd_balance);
+                    trade_log(&metric, &klines[index], exit_price.unwrap(), profit);
+                    init_trade(&mut metric);
                 }
             }
         }
     }
     info!(
         "total_fee: {}, total_profit: {}, usd_balance: {}, max_usd: {}",
-        total_fee, total_profit, usd_balance, max_usd
+        metric.total_fee, metric.total_profit, metric.usd_balance, metric.max_usd
     );
     info!("elapsed: {}", timer.elapsed().as_secs());
+    metric
 }
 
-fn trade_log(
-    win: i64,
-    lose: i64,
-    usd_balance: f64,
-    position: f64,
-    entry_side: TradeSide,
-    entry_price: f64,
-    exit_price: Option<f64>,
-    profit: f64,
-    curr_kline: &Kline,
-) {
+fn init_trade(metric: &mut BacktestMetric) {
+    metric.position = 0.;
+    metric.entry_price = 0.;
+    metric.entry_side = TradeSide::None;
+    metric.take_profit_price = 0.;
+    metric.stop_loss_price = 0.;
+}
+
+fn trade_log(metric: &BacktestMetric, curr_kline: &Kline, exit_price: f64, profit: f64) {
     let curr_date = NaiveDateTime::from_timestamp_millis(curr_kline.close_time).unwrap();
     let msg = format!("win: {}, lose: {}, usd_balance: {}, position: {}, entry_price: {}, exit_price: {:?}, side: {:?}, profit: {}, date: {:?}",
-    win, lose, usd_balance, position, entry_price, exit_price, entry_side, profit, curr_date);
+    metric.win, metric.lose, metric.usd_balance, metric.position, metric.entry_price, exit_price, metric.entry_side, profit, curr_date);
     if profit >= 0. {
         info!("{}", msg);
     } else {
