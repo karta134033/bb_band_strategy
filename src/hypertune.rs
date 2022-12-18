@@ -11,8 +11,8 @@ pub fn hypertune(
     hypertune_config: &HypertuneConfig,
     klines: &Vec<Kline>,
 ) -> Result<()> {
-    let take_profit_percentage_max = 0.2;
-    let stop_loss_percentage_max = 0.2;
+    let take_profit_percentage_max = hypertune_config.take_profit_percentage_max;
+    let stop_loss_percentage_max = hypertune_config.stop_loss_percentage_max;
     let output_path = Path::new("output.csv");
     let file = File::create(output_path)?;
     let mut writer = csv::Writer::from_writer(file);
@@ -31,7 +31,6 @@ pub fn hypertune(
     ])?;
     let mut trial_config = config.clone();
     while trial_config.stop_loss_percentage <= stop_loss_percentage_max {
-        trial_config.take_profit_percentage += hypertune_config.take_profit_percentage_step;
         let metric = backtest(&trial_config, klines);
         let mut record = Vec::new();
         record.push(metric.initial_captial.to_string());
@@ -47,6 +46,8 @@ pub fn hypertune(
         record.push(trial_config.stop_loss_percentage.to_string());
         writer.write_record(&record)?;
         writer.flush()?;
+
+        trial_config.take_profit_percentage += hypertune_config.take_profit_percentage_step;
         if trial_config.take_profit_percentage > take_profit_percentage_max {
             trial_config.take_profit_percentage = config.take_profit_percentage;
             trial_config.stop_loss_percentage += config.take_profit_percentage;

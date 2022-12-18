@@ -88,7 +88,9 @@ impl BacktestMetric {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HypertuneConfig {
     pub take_profit_percentage_step: f64,
+    pub take_profit_percentage_max: f64,
     pub stop_loss_percentage_step: f64,
+    pub stop_loss_percentage_max: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
