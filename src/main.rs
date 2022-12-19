@@ -6,13 +6,25 @@ use bb_band::{
     utils::get_klines_from_db,
 };
 use clap::Parser;
-use log::info;
+use log::{info, LevelFilter};
+use simplelog::*;
 use std::fs::File;
 
 fn main() -> Result<()> {
-    // Log level
-    std::env::set_var("RUST_LOG", "info");
-    env_logger::init();
+    CombinedLogger::init(vec![
+        TermLogger::new(
+            LevelFilter::Info,
+            Config::default(),
+            TerminalMode::Mixed,
+            ColorChoice::Auto,
+        ),
+        WriteLogger::new(
+            LevelFilter::Info,
+            Config::default(),
+            File::create("log_file.log").unwrap(),
+        ),
+    ])
+    .unwrap();
 
     let args = Cli::parse();
     let config_file = File::open(args.config_path)?;
