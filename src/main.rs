@@ -7,28 +7,12 @@ use bb_band::{
 };
 use clap::Parser;
 use log::info;
-use slog::o;
-use slog::Drain;
 use std::fs::File;
-use std::fs::OpenOptions;
 
 fn main() -> Result<()> {
     // Log level
     std::env::set_var("RUST_LOG", "info");
     env_logger::init();
-
-    // Output logs
-    let log_path = "log_file.log";
-    let file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(log_path)
-        .unwrap();
-    let decorator = slog_term::PlainDecorator::new(file);
-    let drain = slog_term::FullFormat::new(decorator).build().fuse();
-    let drain = slog_async::Async::new(drain).build().fuse();
-    let _log = slog::Logger::root(drain, o!());
 
     let args = Cli::parse();
     let config_file = File::open(args.config_path)?;
