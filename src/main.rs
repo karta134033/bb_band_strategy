@@ -18,11 +18,11 @@ fn main() -> Result<()> {
             TerminalMode::Mixed,
             ColorChoice::Auto,
         ),
-        WriteLogger::new(
-            LevelFilter::Info,
-            Config::default(),
-            File::create("log_file.log").unwrap(),
-        ),
+        // WriteLogger::new(
+        //     LevelFilter::Info,
+        //     Config::default(),
+        //     File::create("log_file.log").unwrap(),
+        // ),
     ])
     .unwrap();
 

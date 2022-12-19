@@ -135,8 +135,8 @@ fn init_trade(metric: &mut BacktestMetric) {
 
 fn trade_log(metric: &BacktestMetric, curr_kline: &Kline, exit_price: f64, profit: f64) {
     let curr_date = NaiveDateTime::from_timestamp_millis(curr_kline.close_time).unwrap();
-    let msg = format!("win: {}, lose: {}, usd_balance: {}, position: {}, entry_price: {}, exit_price: {:?}, side: {:?}, profit: {}, date: {:?}",
-    metric.win, metric.lose, metric.usd_balance, metric.position, metric.entry_price, exit_price, metric.entry_side, profit, curr_date);
+    let msg = format!("date: {:?}, win: {}, lose: {}, usd_balance: {:.4}, position: {:.4}, entry_price: {:.4}, exit_price: {:.4}, side: {:?}, profit: {:.4}",
+    curr_date, metric.win, metric.lose, metric.usd_balance, metric.position, metric.entry_price, exit_price, metric.entry_side, profit);
     if profit >= 0. {
         info!("{}", msg);
     } else {
