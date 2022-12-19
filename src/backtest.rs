@@ -55,12 +55,11 @@ pub fn backtest(config: &BbBandConfig, klines: &Vec<Kline>) -> BacktestMetric {
                     metric.usd_balance -= fee;
                 }
             } else if metric.entry_side == TradeSide::Buy {
-                let mid_price = (curr_kline.high + curr_kline.low) / 2.;
                 // Assume we will keep tracking the price, not just tracking 15m kline
-                let exit_price = if mid_price >= metric.take_profit_price {
-                    Some(metric.take_profit_price)
-                } else if mid_price <= metric.stop_loss_price {
+                let exit_price = if curr_kline.low <= metric.stop_loss_price {
                     Some(metric.stop_loss_price)
+                } else if curr_kline.high >= metric.take_profit_price {
+                    Some(metric.take_profit_price)
                 } else {
                     None
                 };
@@ -86,12 +85,11 @@ pub fn backtest(config: &BbBandConfig, klines: &Vec<Kline>) -> BacktestMetric {
                     init_trade(&mut metric);
                 }
             } else if metric.entry_side == TradeSide::Sell {
-                let mid_price = (curr_kline.high + curr_kline.low) / 2.;
                 // Assume we will keep tracking the price, not just tracking 15m kline
-                let exit_price = if mid_price <= metric.take_profit_price {
-                    Some(metric.take_profit_price)
-                } else if mid_price >= metric.stop_loss_price {
+                let exit_price = if curr_kline.high >= metric.stop_loss_price {
                     Some(metric.stop_loss_price)
+                } else if curr_kline.low <= metric.take_profit_price {
+                    Some(metric.take_profit_price)
                 } else {
                     None
                 };
