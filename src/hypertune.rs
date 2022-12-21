@@ -30,28 +30,28 @@ pub fn hypertune(
         "stop_loss_percentage",
     ])?;
     let mut trial_config = config.clone();
-    while trial_config.stop_loss_percentage <= stop_loss_percentage_max {
-        let metric = backtest(&trial_config, klines);
-        let mut record = Vec::new();
-        record.push(metric.initial_captial.to_string());
-        record.push(metric.usd_balance.to_string());
-        record.push(metric.max_usd.to_string());
-        record.push(metric.min_usd.to_string());
-        record.push(metric.win.to_string());
-        record.push(metric.lose.to_string());
-        record.push((metric.win as f64 / (metric.win + metric.lose) as f64).to_string());
-        record.push(metric.total_fee.to_string());
-        record.push(metric.total_profit.to_string());
-        record.push(trial_config.take_profit_percentage.to_string());
-        record.push(trial_config.stop_loss_percentage.to_string());
-        writer.write_record(&record)?;
-        writer.flush()?;
+    while trial_config.take_profit_percentage <= take_profit_percentage_max {
+        trial_config.stop_loss_percentage = config.stop_loss_percentage;
+        while trial_config.stop_loss_percentage <= stop_loss_percentage_max {
+            let metric = backtest(&trial_config, klines);
+            let mut record = Vec::new();
+            record.push(metric.initial_captial.to_string());
+            record.push(metric.usd_balance.to_string());
+            record.push(metric.max_usd.to_string());
+            record.push(metric.min_usd.to_string());
+            record.push(metric.win.to_string());
+            record.push(metric.lose.to_string());
+            record.push((metric.win as f64 / (metric.win + metric.lose) as f64).to_string());
+            record.push(metric.total_fee.to_string());
+            record.push(metric.total_profit.to_string());
+            record.push(trial_config.take_profit_percentage.to_string());
+            record.push(trial_config.stop_loss_percentage.to_string());
+            writer.write_record(&record)?;
+            writer.flush()?;
 
-        trial_config.take_profit_percentage += hypertune_config.take_profit_percentage_step;
-        if trial_config.take_profit_percentage > take_profit_percentage_max {
-            trial_config.take_profit_percentage = config.take_profit_percentage;
-            trial_config.stop_loss_percentage += config.take_profit_percentage;
+            trial_config.stop_loss_percentage += hypertune_config.stop_loss_percentage_step;
         }
+        trial_config.take_profit_percentage += hypertune_config.take_profit_percentage_step;
     }
 
     Ok(())
