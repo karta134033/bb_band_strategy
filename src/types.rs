@@ -63,6 +63,9 @@ pub struct BacktestMetric {
     pub total_profit: f64,
     pub max_usd: f64,
     pub min_usd: f64,
+    pub fee: f64,
+    pub profit: f64,
+    pub exit_price: f64,
 }
 
 impl BacktestMetric {

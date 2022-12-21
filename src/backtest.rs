@@ -81,7 +81,10 @@ pub fn backtest(config: &BbBandConfig, klines: &Vec<Kline>) -> BacktestMetric {
                     }
                     metric.max_usd = metric.max_usd.max(metric.usd_balance);
                     metric.min_usd = metric.min_usd.min(metric.usd_balance);
-                    trade_log(&metric, &klines[index], exit_price.unwrap(), profit);
+                    metric.profit = profit;
+                    metric.fee = fee;
+                    metric.exit_price = exit_price.unwrap();
+                    trade_log(&metric, &klines[index]);
                     init_trade(&mut metric);
                 }
             } else if metric.entry_side == TradeSide::Sell {
@@ -111,7 +114,10 @@ pub fn backtest(config: &BbBandConfig, klines: &Vec<Kline>) -> BacktestMetric {
                     }
                     metric.max_usd = metric.max_usd.max(metric.usd_balance);
                     metric.min_usd = metric.min_usd.min(metric.usd_balance);
-                    trade_log(&metric, &klines[index], exit_price.unwrap(), profit);
+                    metric.profit = profit;
+                    metric.fee = fee;
+                    metric.exit_price = exit_price.unwrap();
+                    trade_log(&metric, &klines[index]);
                     init_trade(&mut metric);
                 }
             }
@@ -131,13 +137,25 @@ fn init_trade(metric: &mut BacktestMetric) {
     metric.entry_side = TradeSide::None;
     metric.take_profit_price = 0.;
     metric.stop_loss_price = 0.;
+    metric.fee = 0.;
+    metric.profit = 0.;
 }
 
-fn trade_log(metric: &BacktestMetric, curr_kline: &Kline, exit_price: f64, profit: f64) {
+fn trade_log(metric: &BacktestMetric, curr_kline: &Kline) {
     let curr_date = NaiveDateTime::from_timestamp_millis(curr_kline.close_time).unwrap();
-    let msg = format!("date: {:?}, win: {}, lose: {}, usd_balance: {:.4}, position: {:.4}, entry_price: {:.4}, exit_price: {:.4}, side: {:?}, profit: {:.4}",
-    curr_date, metric.win, metric.lose, metric.usd_balance, metric.position, metric.entry_price, exit_price, metric.entry_side, profit);
-    if profit >= 0. {
+    let msg = "".to_string();
+    msg += &format!("date: {:?}, ", curr_date);
+    msg += &format!("win: {:?}, ", metric.win);
+    msg += &format!("lose: {:?}, ", metric.lose);
+    msg += &format!("usd_balance: {:.4}, ", metric.usd_balance);
+    msg += &format!("position: {:.4}, ", metric.position);
+    msg += &format!("entry_side: {:?}, ", metric.entry_side);
+    msg += &format!("entry_price: {:.4}, ", metric.entry_price);
+    msg += &format!("exit_price: {:.4}, ", metric.exit_price);
+    msg += &format!("profit: {:.4}, ", metric.profit);
+    msg += &format!("fee: {:.4}, ", metric.fee);
+
+    if metric.profit >= 0. {
         info!("{}", msg);
     } else {
         warn!("{}", msg);
