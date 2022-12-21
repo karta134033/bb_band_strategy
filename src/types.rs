@@ -48,7 +48,7 @@ pub struct BbBandConfig {
     pub entry_protion: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct BacktestMetric {
     pub initial_captial: f64,
     pub usd_balance: f64,
@@ -73,17 +73,10 @@ impl BacktestMetric {
         BacktestMetric {
             initial_captial: config.initial_captial,
             usd_balance: config.initial_captial,
-            position: 0.,
-            entry_price: 0.,
             entry_side: TradeSide::None,
-            take_profit_price: 0.,
-            stop_loss_price: 0.,
-            win: 0,
-            lose: 0,
-            total_fee: 0.,
-            total_profit: 0.,
             max_usd: config.initial_captial,
             min_usd: config.initial_captial,
+            ..Default::default()
         }
     }
 }

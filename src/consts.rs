@@ -19,3 +19,9 @@ impl TradeSide {
         }
     }
 }
+
+impl Default for TradeSide {
+    fn default() -> Self {
+        TradeSide::None
+    }
+}

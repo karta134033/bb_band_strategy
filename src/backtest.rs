@@ -143,7 +143,7 @@ fn init_trade(metric: &mut BacktestMetric) {
 
 fn trade_log(metric: &BacktestMetric, curr_kline: &Kline) {
     let curr_date = NaiveDateTime::from_timestamp_millis(curr_kline.close_time).unwrap();
-    let msg = "".to_string();
+    let mut msg = "".to_string();
     msg += &format!("date: {:?}, ", curr_date);
     msg += &format!("win: {:?}, ", metric.win);
     msg += &format!("lose: {:?}, ", metric.lose);
