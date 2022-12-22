@@ -5,13 +5,13 @@ use clap::Parser;
 use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
-#[command(arg_required_else_help = true)]
+#[command(arg_required_else_help = false)]
 pub struct Cli {
     #[arg(short = 'c')]
     pub config_path: PathBuf,
     #[arg(short = 'm')]
     pub mode: Mode,
-    #[arg(short = 't')]
+    #[arg(short = 't', required = false)]
     pub hypertune_config: Option<PathBuf>,
 }
 
