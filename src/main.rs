@@ -38,7 +38,6 @@ fn main() -> Result<()> {
         Mode::Hypertune => {
             let hypertune_config_file = File::open(args.hypertune_config.unwrap())?;
             let hypertune_config: HypertuneConfig = serde_json::from_reader(hypertune_config_file)?;
-            info!("hypertune_config: {:#?}", hypertune_config);
             let _ = hypertune(&config, &hypertune_config, &klines);
         }
     }

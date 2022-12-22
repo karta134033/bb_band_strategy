@@ -46,6 +46,7 @@ pub struct BbBandConfig {
     pub leverage: u64,
     pub strategy_type: StrategyType,
     pub entry_protion: f64,
+    pub bb_width: f64,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -66,6 +67,7 @@ pub struct BacktestMetric {
     pub fee: f64,
     pub profit: f64,
     pub exit_price: f64,
+    pub bb_width: f64,
 }
 
 impl BacktestMetric {
@@ -84,9 +86,14 @@ impl BacktestMetric {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HypertuneConfig {
     pub take_profit_percentage_step: f64,
+    pub take_profit_percentage_min: f64,
     pub take_profit_percentage_max: f64,
     pub stop_loss_percentage_step: f64,
+    pub stop_loss_percentage_min: f64,
     pub stop_loss_percentage_max: f64,
+    pub bb_width_step: f64,
+    pub bb_width_min: f64,
+    pub bb_width_max: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

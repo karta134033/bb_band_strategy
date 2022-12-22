@@ -25,8 +25,10 @@ pub fn backtest(config: &BbBandConfig, klines: &Vec<Kline>) -> BacktestMetric {
     let mut metric = BacktestMetric::new(config);
     let timer = Instant::now();
     let mut bb_bands = VecDeque::new();
+    metric.bb_width = config.bb_width;
+
     for index in 0..klines.len() {
-        let bb_band = utils::bollinger_band(index, 20, 2., &klines);
+        let bb_band = utils::bollinger_band(index, 20, config.bb_width, &klines);
         bb_bands.push_back(bb_band);
 
         if index >= 20 {
