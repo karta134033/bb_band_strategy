@@ -4,8 +4,7 @@ use chrono::NaiveDateTime;
 use log::{info, warn};
 
 use crate::{
-    strategy::prev_bb_band_entry,
-    types::{BacktestMetric, BbBandConfig, BollingerBand, Kline, StrategyType},
+    types::{BacktestMetric, BbBandConfig, BollingerBand, Kline, OrderSpec, StrategyType},
     utils::{self, calculate_fee, init_trade},
     TradeSide,
 };
@@ -152,6 +151,25 @@ impl BBSwing {
             self.bb_bands.pop_front();
             self.klines.pop_front();
         }
+    }
+}
+
+fn prev_bb_band_entry(
+    prev_kline: &Kline,
+    prev_bb_band: &BollingerBand,
+    entry_size: f64,
+) -> Option<OrderSpec> {
+    let prev_price = prev_kline.close;
+    if prev_price > prev_bb_band.up || prev_price < prev_bb_band.down {
+        let side = if prev_price > prev_bb_band.up {
+            TradeSide::Sell
+        } else {
+            TradeSide::Buy
+        };
+        let position = entry_size;
+        Some(OrderSpec { position, side })
+    } else {
+        None
     }
 }
 
